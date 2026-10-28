@@ -40,8 +40,8 @@ app.post('/api/notify', async (req, res) => {
     const chatId = process.env.TELEGRAM_CHAT_ID;
 
     if (!botToken || !chatId || botToken.includes('ReplaceMe')) {
-      console.warn('Telegram credentials not configured in environment. Skipping notification.');
-      return res.json({ success: true, message: 'Notification skipped (credentials not configured)' });
+      console.warn('⚠️ [Telegram Alert Skipped]: TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is missing or still set to placeholder.');
+      return res.json({ success: false, reason: 'Telegram credentials missing or placeholder in environment' });
     }
 
     const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
@@ -56,13 +56,14 @@ app.post('/api/notify', async (req, res) => {
 
     const data = await response.json();
     if (!data.ok) {
-      console.error('Telegram API error:', data.description);
+      console.error(`❌ [Telegram API Error]: ${data.error_code} - ${data.description}`);
       return res.status(502).json({ error: data.description || 'Telegram API error' });
     }
 
+    console.log(`✅ [Telegram Alert Sent]: Successfully delivered invoice alert to chat ${chatId}`);
     res.json({ success: true });
   } catch (err) {
-    console.error('Notification proxy error:', err.message);
+    console.error('❌ [Notification proxy error]:', err.message);
     res.status(500).json({ error: 'Failed to send notification' });
   }
 });
