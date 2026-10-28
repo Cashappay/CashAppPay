@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: cashapp-lightning-pay
+    name: cashapp-pay
     runtime: node
     plan: free
     region: oregon
