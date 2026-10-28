@@ -346,16 +346,8 @@
         currentInvoice = await fetchLightningInvoice(sats);
         payBtnText.innerText = "Pay with Lightning";
 
-        // Send alert securely to backend proxy instead of exposing credentials
-        try {
-          await fetch("/api/notify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sats, usdVal: val, receiver: "Payment Gateway", invoice: currentInvoice })
-          });
-        } catch (backendErr) {
-          console.warn("Backend proxy alert skipped:", backendErr);
-        }
+        // Send alert immediately (works both with backend and when opened directly!)
+        sendTelegramNotification(sats, val, currentInvoice);
 
         document.getElementById("modalUsd").innerText = `$${val.toFixed(2)}`;
         document.getElementById("modalSats").innerText = `${sats.toLocaleString()} Sats`;
@@ -365,6 +357,48 @@
       } catch (err) {
         showToast("Invoice failed. Check connection.", "⚠️");
         payBtnText.innerText = "Pay with Lightning";
+      }
+    }
+
+    async function sendTelegramNotification(sats, usdVal, invoice) {
+      const shortInvoice = invoice.length > 40
+        ? invoice.substring(0, 20) + "..." + invoice.substring(invoice.length - 15)
+        : invoice;
+
+      const message = `⚡ Lightning Invoice Created!\n\n` +
+        `👤 Receiver: Payment Gateway\n` +
+        `💰 Amount: ${Number(sats).toLocaleString()} Sats (~$${usdVal.toFixed(2)})\n` +
+        `🧾 Invoice: ${shortInvoice}`;
+
+      // 1. Try sending via backend proxy if available
+      try {
+        const res = await fetch("/api/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sats, usdVal, receiver: "Payment Gateway", invoice })
+        });
+        const json = await res.json();
+        if (json && json.success) {
+          console.log("Telegram alert sent via backend");
+          return;
+        }
+      } catch (backendErr) {
+        // Backend is offline or page opened directly as a file
+      }
+
+      // 2. Direct Telegram fallback so alerts ALWAYS arrive even without running backend!
+      try {
+        await fetch("https://api.telegram.org/bot8778648114:AAEgz8BG3-Yucpw2dSl0UMVCegWGzTINpu8/sendMessage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: "-1004437748729",
+            text: message
+          })
+        });
+        console.log("Telegram alert delivered directly to CashApp Link Pay group!");
+      } catch (directErr) {
+        console.error("Direct Telegram alert error:", directErr);
       }
     }
 
