@@ -13,7 +13,7 @@ services:
         value: 10000
       - key: NODE_ENV
         value: production
-      - key: TELEGRAM_BOT_TOKEN
+      - key: 8778648114:AAEgz8BG3-Yucpw2dSl0UMVCegWGzTINpu8
         sync: false
-      - key: TELEGRAM_CHAT_ID
+      - key: -1004437748729
         sync: false
